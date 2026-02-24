@@ -62,6 +62,10 @@ export interface GridLayoutProps {
   droppingWidgetType?: string;
   /** Resize configuration options */
   resizeWidgetConfig?: Partial<ResizeConfig>;
+  /** Custom breakpoints for responsive layout (container width thresholds in px) */
+  customBreakpoints?: Record<Variants, number>;
+  /** Custom column counts per breakpoint variant */
+  customColumns?: Record<Variants, number>;
 }
 
 const LayoutEmptyState = ({
@@ -107,7 +111,10 @@ const GridLayout = ({
   onActiveWidgetsChange,
   droppingWidgetType,
   resizeWidgetConfig,
+  customBreakpoints,
+  customColumns,
 }: GridLayoutProps) => {
+  const activeColumns = customColumns ?? columns;
   const [isDragging, setIsDragging] = useState(false);
   const [isInitialRender, setIsInitialRender] = useState(true);
   const [layoutVariant, setLayoutVariant] = useState<Variants>('xl');
@@ -172,8 +179,8 @@ const GridLayout = ({
           ...layoutItem,
           ...widget.defaults,
           // make sure the configuration is valid for all layout sizes
-          w: size === layoutVariant ? layoutItem.w : Math.min(widget.defaults.w, columns[size as Variants]),
-          x: size === layoutVariant ? layoutItem.x : Math.min(layoutItem.x, columns[size as Variants]),
+          w: size === layoutVariant ? layoutItem.w : Math.min(widget.defaults.w, activeColumns[size as Variants]),
+          x: size === layoutVariant ? layoutItem.x : Math.min(layoutItem.x, activeColumns[size as Variants]),
           widgetType: data,
           i: getWidgetIdentifier(data),
           title: 'New title',
@@ -226,7 +233,7 @@ const GridLayout = ({
   // Update layout variant when container width changes
   useEffect(() => {
     if (mounted && layoutWidth > 0) {
-      const variant: Variants = getGridDimensions(layoutWidth);
+      const variant: Variants = getGridDimensions(layoutWidth, customBreakpoints);
       setLayoutVariant(variant);
     }
   }, [layoutWidth, mounted]);
@@ -247,7 +254,7 @@ const GridLayout = ({
         width={effectiveWidth}
         droppingItem={droppingItemTemplate}
         gridConfig={{
-          cols: columns[layoutVariant],
+          cols: activeColumns[layoutVariant],
           rowHeight: 56,
         }}
         dragConfig={{
@@ -283,7 +290,7 @@ const GridLayout = ({
                   widgetType={widgetType}
                   widgetConfig={{
                     ...layoutItem,
-                    colWidth: effectiveWidth / columns[layoutVariant],
+                    colWidth: effectiveWidth / activeColumns[layoutVariant],
                     config,
                     maxH: layoutItem.maxH ?? widget.defaults.maxH,
                     minH: layoutItem.minH ?? widget.defaults.minH,
