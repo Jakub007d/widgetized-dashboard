@@ -12,14 +12,13 @@ import {
   ExtendedTemplateConfig,
   AnalyticsTracker,
   WidgetConfiguration,
+  Breakpoints,
 } from './types';
 import { Button, EmptyState, EmptyStateActions, EmptyStateBody, EmptyStateVariant, PageSection } from '@patternfly/react-core';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/esm/icons/external-link-alt-icon';
 import GripVerticalIcon from '@patternfly/react-icons/dist/esm/icons/grip-vertical-icon';
 import PlusCircleIcon from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
-import { columns, breakpoints, droppingElemId, getWidgetIdentifier, extendLayout, getGridDimensions } from './utils';
-
-export const defaultBreakpoints = breakpoints;
+import { defaultBreakpoints, defaultColumns, droppingElemId, getWidgetIdentifier, extendLayout, getGridDimensions } from './utils';
 
 const createSerializableConfig = (config?: WidgetConfiguration) => {
   if (!config) { return undefined; }
@@ -63,9 +62,9 @@ export interface GridLayoutProps {
   /** Resize configuration options */
   resizeWidgetConfig?: Partial<ResizeConfig>;
   /** Custom breakpoints for responsive layout (container width thresholds in px) */
-  customBreakpoints?: Record<Variants, number>;
+  breakpoints?: Breakpoints;
   /** Custom column counts per breakpoint variant */
-  customColumns?: Record<Variants, number>;
+  columns?: Record<Variants, number>;
 }
 
 const LayoutEmptyState = ({
@@ -111,10 +110,9 @@ const GridLayout = ({
   onActiveWidgetsChange,
   droppingWidgetType,
   resizeWidgetConfig,
-  customBreakpoints,
-  customColumns,
+  breakpoints = defaultBreakpoints,
+  columns = defaultColumns,
 }: GridLayoutProps) => {
-  const activeColumns = customColumns ?? columns;
   const [isDragging, setIsDragging] = useState(false);
   const [isInitialRender, setIsInitialRender] = useState(true);
   const [layoutVariant, setLayoutVariant] = useState<Variants>('xl');
@@ -179,8 +177,8 @@ const GridLayout = ({
           ...layoutItem,
           ...widget.defaults,
           // make sure the configuration is valid for all layout sizes
-          w: size === layoutVariant ? layoutItem.w : Math.min(widget.defaults.w, activeColumns[size as Variants]),
-          x: size === layoutVariant ? layoutItem.x : Math.min(layoutItem.x, activeColumns[size as Variants]),
+          w: size === layoutVariant ? layoutItem.w : Math.min(widget.defaults.w, columns[size as Variants]),
+          x: size === layoutVariant ? layoutItem.x : Math.min(layoutItem.x, columns[size as Variants]),
           widgetType: data,
           i: getWidgetIdentifier(data),
           title: 'New title',
@@ -233,10 +231,10 @@ const GridLayout = ({
   // Update layout variant when container width changes
   useEffect(() => {
     if (mounted && layoutWidth > 0) {
-      const variant: Variants = getGridDimensions(layoutWidth, customBreakpoints);
+      const variant: Variants = getGridDimensions(layoutWidth, breakpoints);
       setLayoutVariant(variant);
     }
-  }, [layoutWidth, mounted]);
+  }, [layoutWidth, mounted, breakpoints]);
 
   const activeLayout = internalTemplate[layoutVariant] || [];
 
@@ -254,7 +252,7 @@ const GridLayout = ({
         width={effectiveWidth}
         droppingItem={droppingItemTemplate}
         gridConfig={{
-          cols: activeColumns[layoutVariant],
+          cols: columns[layoutVariant],
           rowHeight: 56,
         }}
         dragConfig={{
@@ -290,7 +288,7 @@ const GridLayout = ({
                   widgetType={widgetType}
                   widgetConfig={{
                     ...layoutItem,
-                    colWidth: effectiveWidth / activeColumns[layoutVariant],
+                    colWidth: effectiveWidth / columns[layoutVariant],
                     config,
                     maxH: layoutItem.maxH ?? widget.defaults.maxH,
                     minH: layoutItem.minH ?? widget.defaults.minH,
